@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Burning Calendar</title>
+<meta name="description" content="Harmonized MODIS and VIIRS active fire hotspots from 2000 to today. Pick an area to see when it burns and whether this month is unusual.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='1' y='1' width='6' height='6' rx='1' fill='%23f8b896'/%3E%3Crect x='9' y='1' width='6' height='6' rx='1' fill='%23eb6834'/%3E%3Crect x='1' y='9' width='6' height='6' rx='1' fill='%23b8461a'/%3E%3Crect x='9' y='9' width='6' height='6' rx='1' fill='%236e250a'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="vendor/leaflet-draw/leaflet.draw.css">
+<link rel="stylesheet" href="style.css?v=8">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3 2.5 8 12 13l9.5-5L12 3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m2.5 12.5 9.5 5 9.5-5M2.5 16.5l9.5 5 9.5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0C18.5 15.4 12 21 12 21Z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="10" r="2.4" fill="currentColor"/></symbol>
+  <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14.5 4v16" stroke="currentColor" stroke-width="1.8"/><path d="M16.8 8.5h2M16.8 11.5h2M16.8 14.5h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5L8 5.5Z" fill="currentColor"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5.5" width="4" height="13" rx="1" fill="currentColor"/><rect x="13.5" y="5.5" width="4" height="13" rx="1" fill="currentColor"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path d="m14.5 6-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="7.8" r="1.2" fill="currentColor"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+<div class="app panel-open" id="app">
+  <div id="map" aria-label="Fire map. Use the drawing tools on the left to select an area."></div>
+
+  <header class="card brand" id="brand">
+    <div class="brand-row">
+      <h1>Burning calendar</h1>
+      <div class="region" hidden>
+        <label for="regionSel" class="sr">Region</label>
+        <select id="regionSel"></select>
+      </div>
+    </div>
+    <p class="sub">MODIS and VIIRS fire hotspots in one consistent record, 2000 to <span id="dataEnd">today</span></p>
+    <div class="seg" role="radiogroup" aria-label="Map layer">
+      <button type="button" role="radio" data-layer="grid" aria-checked="true">Hotspots</button>
+      <button type="button" role="radio" data-layer="anom" aria-checked="false">Vs usual</button>
+      <button type="button" role="radio" data-layer="points" aria-checked="false">Detections</button>
+    </div>
+  </header>
+
+  <div class="actions" id="actions">
+    <div class="pop-wrap">
+      <button class="fab" id="coordsBtn" type="button" aria-expanded="false" aria-controls="coordsPop" title="Select around a point">
+        <svg><use href="#i-pin"/></svg><span class="sr">Select around a point</span>
+      </button>
+      <div class="card pop" id="coordsPop" hidden>
+        <form id="pointForm" autocomplete="off">
+          <p class="pop-title">Select around a point</p>
+          <div class="fields">
+            <label>Latitude<input id="inLat" inputmode="decimal" placeholder="31.55"></label>
+            <label>Longitude<input id="inLon" inputmode="decimal" placeholder="74.35"></label>
+            <label>Radius, km<input id="inRad" inputmode="decimal" value="25"></label>
+          </div>
+          <button class="btn primary" type="submit">Select area</button>
+          <p id="coordsMsg" class="muted small" aria-live="polite"></p>
+        </form>
+      </div>
+    </div>
+    <div class="pop-wrap">
+      <button class="fab" id="basemapBtn" type="button" aria-expanded="false" aria-controls="basemapPop" title="Map style">
+        <svg><use href="#i-layers"/></svg><span class="sr">Map style</span>
+      </button>
+      <div class="card pop basemaps" id="basemapPop" hidden role="radiogroup" aria-label="Map style"></div>
+    </div>
+    <button class="fab" id="panelOpen" type="button" aria-controls="panel" title="Show analysis">
+      <svg><use href="#i-panel"/></svg><span class="sr">Show analysis</span>
+    </button>
+  </div>
+
+  <div class="card timeline" id="timeline">
+    <div class="tl-row">
+      <button class="icon-btn" id="prevM" type="button" aria-label="Previous month"><svg><use href="#i-prev"/></svg></button>
+      <button class="icon-btn play" id="playBtn" type="button" aria-label="Play through the months"><svg><use href="#i-play"/></svg></button>
+      <button class="icon-btn" id="nextM" type="button" aria-label="Next month"><svg><use href="#i-next"/></svg></button>
+      <input id="monthSlider" type="range" min="0" max="0" value="0" aria-label="Month shown on the map">
+      <output id="monthLabel" for="monthSlider">…</output>
+    </div>
+    <div id="mapLegend" class="legend" aria-live="polite"></div>
+  </div>
+
+  <aside class="panel" id="panel" aria-label="Analysis for the selected area">
+    <div class="panel-top">
+      <div class="grab" aria-hidden="true"></div>
+      <div class="panel-head">
+        <div class="sel">
+          <h2 id="selName">Whole region</h2>
+          <p id="selInfo" class="muted">…</p>
+        </div>
+        <button class="icon-btn" id="panelClose" type="button" aria-label="Close analysis"><svg><use href="#i-close"/></svg></button>
+      </div>
+      <div class="panel-tools">
+        <label class="yr">Years <select id="yearFrom" aria-label="From year"></select></label>
+        <label class="yr">to <select id="yearTo" aria-label="To year"></select></label>
+        <label class="yr">Compare with
+          <select id="baseSel" aria-label="Years used for the usual level">
+            <option value="all">all years</option>
+            <option value="10">last 10 years</option>
+            <option value="5">last 5 years</option>
+          </select>
+        </label>
+        <button id="resetSel" class="chip" type="button" hidden>Back to whole region</button>
+        <button id="methodBtn" class="chip ghost" type="button"><svg><use href="#i-info"/></svg>How it works</button>
+      </div>
+    </div>
+
+    <div class="panel-body">
+      <section class="now" aria-live="polite">
+        <p class="now-when" id="nowUnit">…</p>
+        <p class="bignum" id="nowValue">…</p>
+        <p class="now-text" id="nowText">Loading data</p>
+        <p class="note" id="regionNote" hidden></p>
+      </section>
+
+      <section class="block">
+        <div class="block-head">
+          <h3>Burning calendar</h3>
+          <div class="seg small" role="radiogroup" aria-label="Calendar view">
+            <button type="button" role="radio" data-cal="count" aria-checked="true">Hotspots</button>
+            <button type="button" role="radio" data-cal="anom" aria-checked="false">Vs usual</button>
+          </div>
+        </div>
+        <p class="hint">One square per month. Select a square to show it on the map.</p>
+        <div id="calendar" class="chart"></div>
+        <div id="calLegend" class="legend"></div>
+      </section>
+
+      <section class="block">
+        <h3>Seasons</h3>
+        <p class="hint">The usual year, with the year on the map and the current year.</p>
+        <div id="season" class="chart"></div>
+      </section>
+
+      <section class="block">
+        <h3>Year by year</h3>
+        <div id="annual" class="chart"></div>
+      </section>
+
+      <section class="block">
+        <h3>Key figures</h3>
+        <dl id="facts" class="facts"></dl>
+      </section>
+
+      <section class="block">
+        <h3>Download</h3>
+        <p class="hint">For the selected area and years.</p>
+        <div class="downloads">
+          <button id="dlHotspots" class="btn" type="button"><svg><use href="#i-down"/></svg>Hotspots CSV</button>
+          <button id="dlMonthly" class="btn" type="button"><svg><use href="#i-down"/></svg>Monthly CSV</button>
+          <button id="dlPng" class="btn" type="button"><svg><use href="#i-down"/></svg>Calendar PNG</button>
+        </div>
+        <p id="dlStatus" class="muted small" aria-live="polite"></p>
+      </section>
+
+      <footer class="foot muted">
+        Hotspot data: NASA FIRMS (MODIS C6.1; VIIRS S-NPP, NOAA-20, NOAA-21). Built for the NASA Space Apps
+        Challenge 2026, "Harmonization of MODIS and VIIRS Hot Spots".
+      </footer>
+    </div>
+  </aside>
+</div>
+
+<div id="tip" class="tip" role="status" hidden></div>
+
+<dialog id="method" aria-labelledby="methodTitle">
+  <form method="dialog" class="dlg-close"><button class="icon-btn" aria-label="Close"><svg><use href="#i-close"/></svg></button></form>
+  <h2 id="methodTitle">How it works</h2>
+  <p>Satellites have counted fire hotspots over <span class="region-name">this region</span> since 2000, but the record is split. MODIS (on Terra and Aqua) sees 1 km pixels and has flown since 2000. VIIRS (on S-NPP since 2012, NOAA-20 since 2018, NOAA-21 since 2023) sees 375 m pixels and catches many small fires MODIS misses. Adding them together makes the count jump every time a satellite is launched.</p>
+  <div id="methodChart" class="chart"></div>
+  <p>This tool uses one fixed reference, S-NPP VIIRS, so the sensor no longer matters. For the years both sensors flew, a <span id="methodModel">gradient boosting</span> model learned how what MODIS saw in each <span class="cell-km">11 km</span> cell and month relates to what S-NPP saw. It then rebuilds VIIRS-equivalent counts for 2000 to 2011. When S-NPP has a gap, NOAA-20 fills it, scaled to S-NPP.</p>
+  <h3>How well does it work?</h3>
+  <ul id="methodStats"></ul>
+  <h3>Keep in mind</h3>
+  <ul>
+    <li>Years before 2012 are reconstructed from MODIS. Single months are good to about 10 to 20 percent; seasons and years are better.</li>
+    <li>November 2000 to June 2002 rely on Terra alone and are the least certain.</li>
+    <li>Only vegetation fires are counted. Low-confidence detections and persistent industrial heat sources are removed.</li>
+    <li>A single <span class="cell-km">11 km</span> cell is noisy. Areas of several cells give steadier numbers.</li>
+  </ul>
+</dialog>
+
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="vendor/leaflet-draw/leaflet.draw.js"></script>
+<script src="vendor/d3/d3.min.js"></script>
+<script src="app.js?v=8"></script>
+</body>
+</html>

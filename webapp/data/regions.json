@@ -1,0 +1,37 @@
+{
+ "regions": [
+  {
+   "id": "pakistan",
+   "name": "Pakistan",
+   "bbox": [
+    60.8,
+    23.6,
+    77.9,
+    37.1
+   ],
+   "order": 0
+  },
+  {
+   "id": "india-northwest",
+   "name": "India (Northwest)",
+   "bbox": [
+    73.8,
+    27.4,
+    80.6,
+    32.8
+   ],
+   "order": 1
+  },
+  {
+   "id": "argentina",
+   "name": "Argentina",
+   "bbox": [
+    -73.6,
+    -55.1,
+    -53.6,
+    -21.7
+   ],
+   "order": 2
+  }
+ ]
+}

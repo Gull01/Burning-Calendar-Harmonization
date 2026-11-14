@@ -1,0 +1,22 @@
+# Raw NASA FIRMS downloads: large, download them from FIRMS instead
+DL_FIRE_*/
+India_Argentina/
+*.zip
+
+# Pipeline working files: large, rebuilt by run_pipeline.py (summaries live in firms_harmonize/results/)
+firms_harmonize/outputs/
+firms_harmonize/data/
+*.parquet
+*.joblib
+*.csv.gz
+
+# Old single-region web data from before the region selector
+webapp/data/*.bin
+webapp/data/meta.json
+
+# Local and tool folders
+Claude outputs/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db

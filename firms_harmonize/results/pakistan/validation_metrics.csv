@@ -1,0 +1,10 @@
+model,scale,n,pearson_r,pearson_r_log1p,mae,bias_pct
+pred_gbm_aqua,cell-month,872976,0.809,0.743,0.609,-1.21
+pred_gbm_aqua,region-month,156,0.977,0.976,428.405,-1.21
+pred_gbm_aqua,region-year,13,0.94,0.947,1714.993,-1.21
+pred_gbm_terra,cell-month,872976,0.586,0.606,0.803,-0.89
+pred_gbm_terra,region-month,156,0.882,0.939,862.102,-0.89
+pred_gbm_terra,region-year,13,0.362,0.367,5827.631,-0.89
+pred_ratio,cell-month,872976,0.776,0.771,0.627,-0.47
+pred_ratio,region-month,156,0.948,0.966,647.039,-0.47
+pred_ratio,region-year,13,0.864,0.862,3231.004,-0.47

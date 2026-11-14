@@ -1,0 +1,13 @@
+{
+  "input": "NASA FIRMS archive and NRT downloads (not included in the repository)",
+  "bbox": [
+    -73.6,
+    -55.1,
+    -53.6,
+    -21.7
+  ],
+  "grid_deg": 0.25,
+  "reference_platform": "SNPP",
+  "data_end": "2026-11-11",
+  "primary_model": "gbm"
+}
